@@ -1,0 +1,245 @@
+﻿#############################################################################
+##
+##  This program uses to define the path of the curent
+##
+#############################################################################
+
+
+# These are only needed for Python v2 but are harmless for Python v3.
+
+from PyQt4 import QtCore, QtGui
+
+
+class ScribbleArea(QtGui.QWidget):
+    def __init__(self, parent=None):
+        super(ScribbleArea, self).__init__(parent)
+
+        self.setAttribute(QtCore.Qt.WA_StaticContents)
+        self.myPenColor = QtGui.QColor(0,255,0) #green
+        self.image1 = QtGui.QImage()
+        self.image2 = QtGui.QImage()
+        self.image_1 = QtGui.QImage()
+        self.image_2 = QtGui.QImage()
+        self.alpha = 0.5
+
+	#--------------- fill ----------------------
+    def fill(self, pos):
+        value = QtGui.qRgb(*self.myPenColor.getRgb()[:-1])
+        img_w = self.image1.width()
+        img_h = self.image1.height()
+        q = [(pos.x(),pos.y()),]
+        while(len(q)>0):
+            curent=q[0]
+            q.remove(q[0])
+            if self.image1.pixel(*curent) == 0xFF000000:
+                self.image1.setPixel(curent[0],curent[1], value)                 
+            direct = [(curent[0]-1,curent[1]),(curent[0]+1,curent[1]),(curent[0],curent[1]+1),(curent[0],curent[1]-1)]
+            for dir in direct:
+                if img_w>dir[0]>0 and img_h>dir[1]>0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000:
+                    q.append((dir[0],dir[1]))   
+        self.repaint() 
+	#--------------- end fill ------------------
+    
+    def setalpha(self, event): 
+        self.alpha = round(float(event) / 100, 2) 
+        self.repaint()
+        
+    def reset(self):
+        self.image1 = self.image_1
+        self.image2 = self.image_2
+        self.repaint()
+
+    def openImage(self, fileName, num):
+        loadedImage = QtGui.QImage()
+        if not loadedImage.load(fileName):
+            return False
+
+        newSize = loadedImage.size().expandedTo(self.size())
+        self.resizeImage(loadedImage, newSize)
+        if num == 1:
+            self.image_1 = loadedImage.convertToFormat(QtGui.QImage.Format_ARGB32_Premultiplied)
+            self.image1 = self.image_1.scaledToWidth(720).scaledToHeight(540)
+            
+        if num == 2:
+            self.image_2 = loadedImage.convertToFormat(QtGui.QImage.Format_ARGB32_Premultiplied)
+            self.image2 = self.image_2.scaledToWidth(720).scaledToHeight(540)
+        self.update()
+        
+        
+        return True
+        
+    def blackWhite(self):
+        img_w = self.image1.width()
+        img_h = self.image1.height()
+        
+    
+    def setPenColor(self, newColor):
+        self.myPenColor = newColor
+
+    def clearImage(self):
+        self.image1.fill(QtGui.qRgb(255, 255, 255))
+        self.image2.fill(QtGui.qRgb(255, 255, 255))
+        self.update()
+      
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setOpacity(self.alpha)
+        painter.drawImage(event.rect(), self.image1)
+        painter.setOpacity(1-self.alpha)
+        painter.drawImage(event.rect(), self.image2)
+
+
+    def resizeEvent(self, event):
+        if self.width() > self.image1.width() or self.height() > self.image1.height():
+            newWidth = max(self.width() + 128, self.image1.width())
+            newHeight = max(self.height() + 128, self.image1.height())
+            self.resizeImage(self.image1, QtCore.QSize(newWidth, newHeight))
+            self.update()
+
+        super(ScribbleArea, self).resizeEvent(event)
+
+
+    def resizeImage(self, image, newSize):
+        if image.size() == newSize:
+            return
+
+        newImage = QtGui.QImage(newSize, QtGui.QImage.Format_RGB32)
+        newImage.fill(QtGui.qRgb(255, 255, 255))
+        painter = QtGui.QPainter(newImage)
+        painter.drawImage(QtCore.QPoint(0, 0), image)
+        self.image1 = newImage
+        
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            c = self.image1.pixel(event.x(), event.y())
+            colors = QtGui.QColor(c).getRgb()
+            print "(%s,%s) color= %s" % (event.x(), event.y(), colors)
+            self.fill(event.pos())
+            
+        if event.button() == QtCore.Qt.RightButton:
+            self.image2.setPixel(event.pos(),value) 
+            self.repaint()
+            
+    def penColor(self):
+        return self.myPenColor
+
+
+class MainWindow(QtGui.QMainWindow):
+    def __init__(self):
+        super(MainWindow, self).__init__()
+
+        self.saveAsActs = []
+        central = QtGui.QWidget()
+       
+        self.scribbleArea = ScribbleArea(central)
+        self.scribbleArea.resize(500, 500)
+        self.scribbleArea.setGeometry(QtCore.QRect(70, 50, 720, 540))
+        self.scribbleArea.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        
+        self.hSlider = QtGui.QSlider(central)
+        self.hSlider.setValue(50)
+        self.hSlider.setGeometry(QtCore.QRect(90, 600, 231, 19))
+        self.hSlider.setOrientation(QtCore.Qt.Horizontal)
+        
+        self.ResButton = QtGui.QPushButton("Reset",central)
+        self.ResButton.setGeometry(QtCore.QRect(380, 600, 75, 23)) 
+        self.ResButton.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        
+        self.setCentralWidget(central)
+
+        self.createActions()
+        self.createMenus()
+
+        self.setWindowTitle("Scribble")
+        self.resize(850, 670)
+        
+        self.hSlider.valueChanged.connect(self.scribbleArea.setalpha)
+        self.ResButton.pressed.connect(self.scribbleArea.reset)
+        
+    def valChange(self):
+        print self.hSlider.value()
+
+
+    def open(self):
+        for i in [1,2]:
+            fileName = QtGui.QFileDialog.getOpenFileName(self, "Open File",
+                QtCore.QDir.currentPath())
+            if fileName:
+                self.scribbleArea.openImage(fileName, i)
+                print(fileName.fromAscii(fileName,-1))
+
+    def save(self):
+        action = self.sender()
+        fileFormat = action.data()
+        self.saveFile(fileFormat)
+
+    def penColor(self):
+        newColor = QtGui.QColorDialog.getColor(self.scribbleArea.penColor())
+        if newColor.isValid():
+            self.scribbleArea.setPenColor(newColor)
+
+    def about(self):
+        QtGui.QMessageBox.about(self, "About Scribble",
+                "<p>The <b>Scribble</b> example shows how to use "
+                "QMainWindow as the base widget for an application, and how "
+                "to reimplement some of QWidget's event handlers to receive "
+                "the events generated for the application's widgets:</p>"
+                "<p>This program uses to define the path of the curent</p>")
+
+    def createActions(self):
+        self.openAct = QtGui.QAction("&Open...", self, shortcut="Ctrl+O",
+                triggered=self.open)
+
+        self.exitAct = QtGui.QAction("E&xit", self, shortcut="Ctrl+Q",
+                triggered=self.close)
+
+        self.penColorAct = QtGui.QAction("&Pen Color...", self,
+                triggered = self.penColor)
+
+        self.blackWhite = QtGui.QAction("&Black and White", self,
+                triggered = self.scribbleArea.blackWhite)
+                
+        self.clearScreenAct = QtGui.QAction("&Clear Screen", self,
+                shortcut="Ctrl+L", triggered = self.scribbleArea.clearImage)
+
+        self.aboutAct = QtGui.QAction("&About", self, triggered=self.about)
+
+        self.aboutQtAct = QtGui.QAction("About &Qt", self,
+                triggered=QtGui.qApp.aboutQt)
+
+    def createMenus(self):
+
+        fileMenu = QtGui.QMenu("&File", self)
+        fileMenu.addAction(self.openAct)
+        fileMenu.addSeparator()
+        fileMenu.addAction(self.exitAct)
+
+        optionMenu = QtGui.QMenu("&Options", self)
+        optionMenu.addAction(self.penColorAct)
+        optionMenu.addAction(self.blackWhite)
+        optionMenu.addSeparator()
+        optionMenu.addAction(self.clearScreenAct)
+
+        helpMenu = QtGui.QMenu("&Help", self)
+        helpMenu.addAction(self.aboutAct)
+        helpMenu.addAction(self.aboutQtAct)
+
+        self.menuBar().addMenu(fileMenu)
+        self.menuBar().addMenu(optionMenu)
+        self.menuBar().addMenu(helpMenu)
+
+
+        
+        
+
+        
+        
+if __name__ == '__main__':
+
+    import sys
+
+    app = QtGui.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
