@@ -29,13 +29,12 @@ class ScribbleArea(QtGui.QWidget):
         img_h = self.image1.height()
         q = [(pos.x(),pos.y()),]
         while(len(q)>0):
-            curent=q[0]
-            q.remove(q[0])
+            curent=q.pop(0)
             if self.image1.pixel(*curent) == 0xFF000000:
                 self.image1.setPixel(curent[0],curent[1], value)                 
             direct = [(curent[0]-1,curent[1]),(curent[0]+1,curent[1]),(curent[0],curent[1]+1),(curent[0],curent[1]-1)]
             for dir in direct:
-                if img_w>dir[0]>0 and img_h>dir[1]>0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000:
+                if img_w>dir[0]>0 and img_h>dir[1]>0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000 and dir not in q:
                     q.append((dir[0],dir[1]))   
         self.repaint() 
 	#--------------- end fill ------------------
