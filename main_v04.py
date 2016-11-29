@@ -34,7 +34,7 @@ class ScribbleArea(QtGui.QWidget):
                 self.image1.setPixel(curent[0],curent[1], value)                 
             direct = [(curent[0]-1,curent[1]),(curent[0]+1,curent[1]),(curent[0],curent[1]+1),(curent[0],curent[1]-1)]
             for dir in direct:
-                if img_w>dir[0]>0 and img_h>dir[1]>0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000 and dir not in q:
+                if img_w>dir[0]>=0 and img_h>dir[1]>=0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000 and dir not in q:
                     q.append((dir[0],dir[1]))   
         self.repaint() 
 	#--------------- end fill ------------------
@@ -68,8 +68,20 @@ class ScribbleArea(QtGui.QWidget):
         return True
         
     def blackWhite(self):
-        img_w = self.image1.width()
-        img_h = self.image1.height()
+        img_w = self.width()
+        img_h = self.height()
+        for i in range(0,img_w):
+        	for j in range(0,img_h):
+        		if self.image1.pixel(i,j) < 0xFF808080:
+        			self.image1.setPixel(i,j, 0xFF000000)
+        		else:	
+        			self.image1.setPixel(i,j, 0xFFFFFFFF)
+        		if self.image2.pixel(i,j) < 0xFF808080:
+        			self.image2.setPixel(i,j, 0xFF000000)
+        		else:	
+        			self.image2.setPixel(i,j, 0xFFFFFFFF)
+        	print i
+        self.repaint()
         
     
     def setPenColor(self, newColor):
