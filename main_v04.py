@@ -23,22 +23,41 @@ class ScribbleArea(QtGui.QWidget):
         self.alpha = 0.5
 
 	#--------------- fill ----------------------
-    def fill(self, pos):
+
+    def fill(self, pos, level=1, t_col=0xFF000000):
         value = QtGui.qRgb(*self.myPenColor.getRgb()[:-1])
-        img_w = self.image1.width()
-        img_h = self.image1.height()
+        img = QtGui.QImage()
+        if level == 1:
+            img = self.image1
+        else :
+            img = self.image2
+        img_w = img.width()
+        img_h = img.height()
+        sw = []
         q = [(pos.x(),pos.y()),]
         while(len(q)>0):
             curent=q.pop(0)
-            if self.image1.pixel(*curent) == 0xFF000000:
-                self.image1.setPixel(curent[0],curent[1], value)                 
+            if img.pixel(*curent) == t_col:
+                img.setPixel(curent[0],curent[1], value) 
+            else if img.pixel(*curent) == 0xFF0000FF:
+                sw.append(curent)
             direct = [(curent[0]-1,curent[1]),(curent[0]+1,curent[1]),(curent[0],curent[1]+1),(curent[0],curent[1]-1)]
             for dir in direct:
-                if img_w>dir[0]>=0 and img_h>dir[1]>=0 and self.image1.pixel(dir[0],dir[1]) == 0xFF000000 and dir not in q:
+                if img_w>dir[0]>=0 and img_h>dir[1]>=0 and img.pixel(dir[0],dir[1]) == t_col and dir not in q:
                     q.append((dir[0],dir[1]))   
-        self.repaint() 
+        return sw
+
 	#--------------- end fill ------------------
     
+    def find(self,pos):
+        sw = self.fill(pos)
+        while (len(sw)>0):
+            
+
+
+
+
+
     def setalpha(self, event): 
         self.alpha = round(float(event) / 100, 2) 
         self.repaint()
