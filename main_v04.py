@@ -56,8 +56,9 @@ class ScribbleArea(QtGui.QWidget):
                     if img.pixel(dir[0],dir[1]) == t_col:
                         q.append((dir[0],dir[1]))   
                     elif img.pixel(dir[0],dir[1]) == 0xFF0000FF:
-                        print 'Hiii1'
                         sw.append(curent)
+                        print 'Hiii1'
+                        print sw
                         self.fill(curent,layer,0xFF0000FF)
 
         self.repaint()
@@ -75,10 +76,11 @@ class ScribbleArea(QtGui.QWidget):
             for point in sw:
                 print point
                 print '----Point'
+                sw = sw[1:]
                 n_pos = self.nearest(point, layer%2)
                 if n_pos == 0:
                     continue
-                sw.append(self.fill(n_pos,layer%2))
+                sw += self.fill(n_pos,layer%2)
 
 
 
@@ -92,14 +94,14 @@ class ScribbleArea(QtGui.QWidget):
 
         img_w = img.width()
         img_h = img.height()
-        i = 20
+        i = 50
         q = [pos,]
         while(i>0):
             curent=q.pop(0)
-            print curent
-            print '-------Nearest'
             if img.pixel(*curent) == 0xFF0000FF:
                 self.fill(curent,layer,0xFF0000FF,1)
+                print curent
+                print '-------Nearest'
                 return curent
 
             direct = [(curent[0]-1,curent[1]),
@@ -115,6 +117,7 @@ class ScribbleArea(QtGui.QWidget):
                     else:
                         q.append((dir[0],dir[1]))
             i -= 1
+        print '-------Nearest ==== 0'
         return 0
 
 
@@ -124,8 +127,8 @@ class ScribbleArea(QtGui.QWidget):
         self.repaint()
         
     def reset(self):
-        self.image1 = self.image_1
-        self.image2 = self.image_2
+        self.image1 = QtGui.QImage(self.image_1)
+        self.image2 = QtGui.QImage(self.image_2)
         self.repaint()
 
     def openImage(self, fileName, num):
