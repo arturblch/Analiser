@@ -68,9 +68,8 @@ class ScribbleArea(QtGui.QWidget):
     #--------------- end fill ------------------
     
     def find(self,pos,start):
-        sw = self.fill(pos)			#typle for colecting "blue" points
         layer = start 				#number of start layer
-
+        sw = self.fill(pos, layer)         #typle for colecting "blue" points
         while (len(sw)>0):
             layer += 1
             for point in sw:
@@ -212,8 +211,10 @@ class ScribbleArea(QtGui.QWidget):
             self.find((event.x(),event.y()), 0)
             
         if event.button() == QtCore.Qt.RightButton:
-            self.image2.setPixel(event.pos(),value) 
-            self.repaint()
+            c = self.image2.pixel(event.x(), event.y())
+            colors = QtGui.QColor(c).getRgb()
+            print "(%s,%s) color= %s" % (event.x(), event.y(), colors)
+            self.find((event.x(),event.y()), 1)
             
     def penColor(self):
         return self.myPenColor
