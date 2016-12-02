@@ -24,37 +24,98 @@ class ScribbleArea(QtGui.QWidget):
 
 	#--------------- fill ----------------------
 
-    def fill(self, pos, level=1, t_col=0xFF000000):
-        value = QtGui.qRgb(*self.myPenColor.getRgb()[:-1])
+    def fill(self, pos, layer=0, t_col=0xFF000000, bl=0):
+
+        value = bl and QtGui.qRgb(*QtGui.QColor(0,0,0).getRgb()[:-1]) or QtGui.qRgb(*self.myPenColor.getRgb()[:-1])
         img = QtGui.QImage()
-        if level == 1:
+
+        if layer == 0:
             img = self.image1
-        else :
+        elif layer == 1:
             img = self.image2
+
         img_w = img.width()
         img_h = img.height()
         sw = []
-        q = [(pos.x(),pos.y()),]
+        q = [pos,]
         while(len(q)>0):
             curent=q.pop(0)
             if img.pixel(*curent) == t_col:
                 img.setPixel(curent[0],curent[1], value) 
-            else if img.pixel(*curent) == 0xFF0000FF:
+            elif img.pixel(*curent) == 0xFF0000FF:
+                print 'Hiii'
                 sw.append(curent)
-            direct = [(curent[0]-1,curent[1]),(curent[0]+1,curent[1]),(curent[0],curent[1]+1),(curent[0],curent[1]-1)]
+                self.fill(curent,layer,0xFF0000FF)
+            direct = [(curent[0]-1,curent[1]),
+                      (curent[0]+1,curent[1]),
+                      (curent[0],curent[1]+1),
+                      (curent[0],curent[1]-1)]
             for dir in direct:
-                if img_w>dir[0]>=0 and img_h>dir[1]>=0 and img.pixel(dir[0],dir[1]) == t_col and dir not in q:
-                    q.append((dir[0],dir[1]))   
+                if  img_w>dir[0]>=0 and img_h>dir[1]>=0 \
+                and dir not in q:
+                    if img.pixel(dir[0],dir[1]) == t_col:
+                        q.append((dir[0],dir[1]))   
+                    elif img.pixel(dir[0],dir[1]) == 0xFF0000FF:
+                        print 'Hiii1'
+                        sw.append(curent)
+                        self.fill(curent,layer,0xFF0000FF)
+
+        self.repaint()
         return sw
 
-	#--------------- end fill ------------------
+
+    #--------------- end fill ------------------
     
-    def find(self,pos):
-        sw = self.fill(pos)
+    def find(self,pos,start):
+        sw = self.fill(pos)			#typle for colecting "blue" points
+        layer = start 				#number of start layer
+
         while (len(sw)>0):
-            
+            layer += 1
+            for point in sw:
+                print point
+                print '----Point'
+                n_pos = self.nearest(point, layer%2)
+                if n_pos == 0:
+                    continue
+                sw.append(self.fill(n_pos,layer%2))
 
 
+
+
+    def nearest(self, pos, layer):
+        img = QtGui.QImage()
+        if layer == 0:
+            img = self.image1
+        elif layer == 1:
+            img = self.image2
+
+        img_w = img.width()
+        img_h = img.height()
+        i = 20
+        q = [pos,]
+        while(i>0):
+            curent=q.pop(0)
+            print curent
+            print '-------Nearest'
+            if img.pixel(*curent) == 0xFF0000FF:
+                self.fill(curent,layer,0xFF0000FF,1)
+                return curent
+
+            direct = [(curent[0]-1,curent[1]),
+                    (curent[0]+1,curent[1]),
+                    (curent[0],curent[1]+1),
+                    (curent[0],curent[1]-1)]
+
+            for dir in direct: 
+                if img_w>dir[0]>=0 and img_h>dir[1]>=0 and dir not in q:
+                    if img.pixel(*curent) == 0xFF0000FF:
+                        self.fill(curent,layer,0xFF0000FF,1)
+                        return curent
+                    else:
+                        q.append((dir[0],dir[1]))
+            i -= 1
+        return 0
 
 
 
@@ -145,7 +206,7 @@ class ScribbleArea(QtGui.QWidget):
             c = self.image1.pixel(event.x(), event.y())
             colors = QtGui.QColor(c).getRgb()
             print "(%s,%s) color= %s" % (event.x(), event.y(), colors)
-            self.fill(event.pos())
+            self.find((event.x(),event.y()), 0)
             
         if event.button() == QtCore.Qt.RightButton:
             self.image2.setPixel(event.pos(),value) 
